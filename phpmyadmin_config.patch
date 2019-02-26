@@ -1,0 +1,18 @@
+--- /usr/share/metasploit-framework/modules/exploits/unix/webapp/phpmyadmin_config.rb	2019-02-26 04:26:54.904729695 -0500
++++ phpmyadmin_config.rb	2019-02-26 04:30:37.285632604 -0500
+@@ -67,6 +67,15 @@
+   end
+ 
+   def exploit
++    # check config dir exist
++    uri = normalize_uri(datastore['URI'], "/config/")
++    response = send_request_raw({'uri' => uri})
++    if response.code == 404
++      print_warning("Failed to retrieve config dir, server may not be vulnerable.")
++    else 
++      print_good("Succeeded to retrieve config dir, server may be vulnerable.")
++    end
++
+     # First, grab the session cookie and the CSRF token
+     print_status("Grabbing session cookie and CSRF token")
+     uri = normalize_uri(datastore['URI'], "/scripts/setup.php")
