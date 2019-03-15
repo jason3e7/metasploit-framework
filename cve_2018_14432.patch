@@ -42,7 +42,7 @@
 -  def check
 -
 -    user = {"name" => datastore['USERNAME'], "domain" => {"name" => "Default"}, "password" => datastore['PASSWORD']}
--    data = {"auth" => { "identity" => { "methods" => "password", "password" => {"user" => user}}}}
+-    data = {"auth" => { "identity" => { "methods" => ["password"], "password" => {"user" => user}}}}
 -
 -    res = send_request_raw({
 -      'uri'	=> normalize_uri(datastore['TARGETURI'], "/v3/auth/tokens"),
@@ -94,7 +94,7 @@
 -    res_auth_json.delete("links")
 -
 -    if res_os_json == res_auth_json
--      return Exploit::CheckCode::Detected
+-      return Exploit::CheckCode::Safe
 -    else
 -      return Exploit::CheckCode::Vulnerable
 -    end
