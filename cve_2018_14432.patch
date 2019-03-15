@@ -1,5 +1,5 @@
---- cve-2018-14432.rb	2019-03-14 07:45:47.652589972 -0400
-+++ /usr/share/metasploit-framework/modules/exploits/multi/http/cve-2018-14432.rb	1969-12-31 19:00:00.000000000 -0500
+--- cve_2018_14432.rb	2019-03-14 07:45:47.652589972 -0400
++++ /usr/share/metasploit-framework/modules/exploits/multi/http/cve_2018_14432.rb	1969-12-31 19:00:00.000000000 -0500
 @@ -1,108 +0,0 @@
 -require 'msf/core'
 -
