@@ -89,7 +89,7 @@
 -  def testUser(username)
 -    starting = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 -    user = {"name" => username, "domain" => {"name" => "Default"}, "password" => "XXXXXXXX"}
--    data = {"auth" => { "identity" => { "methods" => [ "password" ], "password" => {"user" => data}}}}
+-    data = {"auth" => { "identity" => { "methods" => [ "password" ], "password" => {"user" => user}}}}
 -
 -    res = send_request_raw({
 -      'uri' => normalize_uri(datastore['TARGETURI'], "/v3/auth/tokens"),
