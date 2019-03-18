@@ -7,3 +7,4 @@ cd metasploit-framework/
 git checkout develop
 (cd / && patch -t -p0) < $workpath/metasploit-framework/phpmyadmin_config.patch
 (cd / && patch -t -p0) < $workpath/metasploit-framework/cve_2018_14432.patch
+(cd / && patch -t -p0) < $workpath/metasploit-framework/cve_2018_20170.patch
