@@ -21,7 +21,7 @@
 -      'Author'         => 'jason3e7',
 -      'References'     =>
 -        [
--          [ 'CVE', 'CVE-2018-20170' ],
+-          [ 'CVE', '2018-20170' ],
 -        ],
 -      'Platform'       => 'python',
 -      'Targets'        =>        
