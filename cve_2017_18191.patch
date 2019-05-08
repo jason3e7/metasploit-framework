@@ -23,7 +23,7 @@
 -        [
 -          'huding',  #PoC
 -          'jason3e7' #msf module
--        ]
+-        ],
 -      'References'     =>
 -        [
 -          [ 'CVE', '2017-18191' ],
