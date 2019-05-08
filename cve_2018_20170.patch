@@ -1,6 +1,6 @@
---- cve_2018_20170.rb	2019-03-18 06:26:37.230948876 -0400
-+++ /usr/share/metasploit-framework/modules/exploits/multi/http/cve_2018_20170.rb	1969-12-31 19:00:00.000000000 -0500
-@@ -1,111 +0,0 @@
+--- cve_2018_20170.rb	2019-05-08 10:21:26.637395223 -0400
++++ /usr/share/metasploit-framework/modules/exploits/linux/ssh/cve_2018_20170.rb	1969-12-31 19:00:00.000000000 -0500
+@@ -1,115 +0,0 @@
 -require 'msf/core'
 -
 -class MetasploitModule < Msf::Exploit::Remote
@@ -18,7 +18,11 @@
 -        NOTE: the vendor's position is that this is a hardening opportunity, 
 -        and not necessarily an issue that should have an OpenStack Security Advisory.
 -      },
--      'Author'         => 'jason3e7',
+-      'Author'         => 
+-        [
+-          'huding',  #PoC
+-          'jason3e7' #msf module
+-        ]
 -      'References'     =>
 -        [
 -          [ 'CVE', '2018-20170' ],

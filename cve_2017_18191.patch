@@ -1,6 +1,6 @@
---- cve_2017_18191.rb	2019-05-08 10:05:20.777460467 -0400
+--- cve_2017_18191.rb	2019-05-08 10:21:07.068505172 -0400
 +++ /usr/share/metasploit-framework/modules/exploits/linux/ssh/cve_2017_18191.rb	1969-12-31 19:00:00.000000000 -0500
-@@ -1,260 +0,0 @@
+@@ -1,264 +0,0 @@
 -require 'net/ssh'
 -require 'net/ssh/command_stream'
 -
@@ -19,7 +19,11 @@
 -        (The same code error also results in data loss, but that is not a vulnerability because the user loses their own data.) 
 -        All Nova setups supporting encrypted volumes are affected.	
 -      },
--      'Author'         => 'jason3e7',
+-      'Author'         => 
+-        [
+-          'huding',  #PoC
+-          'jason3e7' #msf module
+-        ]
 -      'References'     =>
 -        [
 -          [ 'CVE', '2017-18191' ],
